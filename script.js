@@ -82,13 +82,13 @@ function showSlides(n) {
     dots[slideIndex - 1].classList.add("active");
   }
 
-  // 🔢 Update counter text dynamically
+  //  Update counter text dynamically
   let counter = slides[slideIndex - 1].querySelector(".numbertext");
   if (counter) {
     counter.innerText = slideIndex + " / " + slides.length;
   }
 
-  // 🔥 Phrase change every 3 slides
+  // Phrase change every 3 slides
   let phraseIndex = Math.floor((slideIndex - 1) / 3) % imageDescriptions.length;
   let textField = slides[slideIndex - 1].querySelector(".text");
   if (textField) {
