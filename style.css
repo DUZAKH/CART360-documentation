@@ -118,3 +118,28 @@ html, body {
   font-weight: 400;
   font-style: normal;
 }
+
+.slide-images{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+/* default */
+.slide-images img{
+  height:auto;
+}
+
+/* if there are exactly TWO images */
+.slide-images img:first-child:nth-last-child(2),
+.slide-images img:first-child:nth-last-child(2) ~ img{
+  max-width:45%;
+}
+
+/* if there are exactly THREE images */
+.slide-images img:first-child:nth-last-child(3),
+.slide-images img:first-child:nth-last-child(3) ~ img{
+  max-width:30%;
+}
