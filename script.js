@@ -1,40 +1,23 @@
 let slideIndex = 1;
 
-
-
-// Sections
+// Descriptions for each slide
 const imageDescriptions = [
-`Research and moodboard stage`,
-
-`Soft robotics and Spirobs`,
-
-`Main ideation.`,
-
-`Protoyping stage.`,
-
-`Material selection.`,
-
-`Building legs.`,
-
-`Building body`,
-
-`code/interaction system`,
-
-`plans.`,
-
-`X.`,
-
-`y`,
-
-`z`,
-
-`hello`,
-
-`more.`,
-
-`text`,
-
-`end`
+  "Research and moodboard stage",
+  "Soft robotics and Spirobs",
+  "Main ideation.",
+  "Prototyping stage.",
+  "Material selection.",
+  "Building legs.",
+  "Building body",
+  "Code/interaction system",
+  "Plans.",
+  "X.",
+  "Y",
+  "Z",
+  "Hello",
+  "More.",
+  "Text",
+  "End"
 ];
 
 function plusSlides(n) {
@@ -53,15 +36,14 @@ function createDots() {
   for (let i = 0; i < slides.length; i++) {
     let dot = document.createElement("span");
     dot.className = "dot";
-    dot.onclick = function () {
-      currentSlide(i + 1);
-    };
+    dot.onclick = function () { currentSlide(i + 1); };
     container.appendChild(dot);
   }
 }
 
 createDots();
 showSlides(slideIndex);
+
 function showSlides(n) {
   let slides = document.getElementsByClassName("mySlides");
   let dots = document.getElementsByClassName("dot");
@@ -78,26 +60,18 @@ function showSlides(n) {
   }
 
   slides[slideIndex - 1].style.display = "block";
-  if (dots[slideIndex - 1]) {
-    dots[slideIndex - 1].classList.add("active");
-  }
+  if (dots[slideIndex - 1]) dots[slideIndex - 1].classList.add("active");
 
-  //  Update counter text dynamically
-  let counter = slides[slideIndex - 1].querySelector(".numbertext");
-  if (counter) {
-    counter.innerText = slideIndex + " / " + slides.length;
-  }
-
-  // Phrase change every 3 slides
-  let phraseIndex = Math.floor((slideIndex - 1) / 3) % imageDescriptions.length;
+  // Update text
   let textField = slides[slideIndex - 1].querySelector(".text");
   if (textField) {
+    let phraseIndex = Math.floor((slideIndex - 1) % imageDescriptions.length);
     let phrase = imageDescriptions[phraseIndex];
-textField.innerText = phrase;
-textField.setAttribute("data-text", phrase);
+    textField.innerText = phrase;
+    textField.setAttribute("data-text", phrase);
   }
 
+  // Update number
+  let counter = slides[slideIndex - 1].querySelector(".numbertext");
+  if (counter) counter.innerText = slideIndex + " / " + slides.length;
 }
-
-
-showSlides(slideIndex);
