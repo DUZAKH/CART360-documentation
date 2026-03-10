@@ -1,13 +1,31 @@
 [EVERYWHERE = NOWHERE = NOW] Proposal Documentation
+
+
 Victoria Hoang 
+
+
 Kiana Rezaee 
+
+
 CART360 - Tangible Media & Physical Computing
+
+
 Elio Bidinost
+
+
 [1] Github & Website
+
+
 Github repository: https://github.com/victori444/CART360-Tangible-Media-Physical-Computing
+
+
 Website: 
 Website repository: https://github.com/DUZAKH/CART360-documentation
+Website link: https://duzakh.github.io/CART360-documentation/main.html
+
+
 [2] Project Description
+
 Context & Environment
 Our project will be presented in a small dimly lit space in which participants can focus on the artifact without many distractions. The environment will ideally allow the object’s soft qualities (sounds, glowing body, and subtle movements) stand out and encourage participants to approach it with curiosity and playfulness. This installation is open to anyone, but particularly targets individuals interested in an all-encompassing sensory experience, exploring textures, light, and sound.
 Relationship Between Users and the Artifact
