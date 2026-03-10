@@ -8,7 +8,7 @@ const imageDescriptions = [
   "Prototyping stage.",
   "Material selection.",
   "Building legs.",
-  "Code/interaction system",
+  "system",
   "Building body",
   "Plans.",
   "X.",
