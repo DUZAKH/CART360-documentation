@@ -8,7 +8,7 @@ const imageDescriptions = [
   "Prototyping stage",              // slides 10-12
   "Material selection",             // slides 13-15
   "Building legs",                  // slides 16-18
-  "Building body",                  // slides 19-20
+  "Building system",                  // slides 19-20
 ];
 
 // Show next/previous slide
