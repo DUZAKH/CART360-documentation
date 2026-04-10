@@ -1,1 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Object — Research & Proposal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Stalinist+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+  <h1 class="title stalinist-one-regular">The Object</h1>
+
+  <nav class="site-nav">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="research.html" class="nav-link active">Research &amp; Proposal</a>
+    <a href="prototype.html" class="nav-link">Prototype</a>
+    <a href="final.html" class="nav-link">Final</a>
+  </nav>
+
+  <div class="proposal">
+
+    <section class="proposal-section">
+      <h2 class="proposal-heading stalinist-one-regular">Project Description</h2>
+      <div class="proposal-body">
+        <div class="proposal-block">
+          <h3>Context &amp; Environment</h3>
+          <p>Our project will be presented in a small dimly lit space in which participants can focus on the artifact without many distractions. The environment will ideally allow the object's soft qualities — sounds, glowing body, and subtle movements — stand out and encourage participants to approach it with curiosity and playfulness. This installation is open to anyone, but particularly targets individuals interested in an all-encompassing sensory experience, exploring textures, light, and sound.</p>
+        </div>
+        <div class="proposal-block">
+          <h3>Relationship Between Users and the Artifact</h3>
+          <p>The artifact seeks to form an intimate and playful relationship with participants, redefining one's typical approach to technology. The soft robotic organism encourages users to engage with it both physically and emotionally by responding to touch and movement in ways that highlight empathy towards non-human beings. In depicting technology and devices as emotive and approachable beings, this project seeks to challenge preconceived notions of digital artifacts as cold and threatening.</p>
+        </div>
+        <div class="proposal-block">
+          <h3>Empowerment</h3>
+          <p>By offering a variety of playful and tangible interactions, this installation empowers users to explore technology with curiosity, touch, and engaged sense within a space that rewards experimentation. Participants are challenged to reconsider their relationship with technology as something beyond a service or a 'means to'. They are encouraged to slow down, observe, and engage in tangible conversation with a being that isn't conventionally categorized as a being from an anthropocentric view.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="proposal-section">
+      <h2 class="proposal-heading stalinist-one-regular">Interaction Design</h2>
+      <div class="proposal-body">
+        <div class="proposal-block">
+          <h3>Strategy</h3>
+          <p>The primary interaction design strategy is to create a regulating system in which a linear input (ultrasonic sensor) provides input to a self-regulating system (servo motor and sound). This is a 0–1 system in which the sensor disturbs the self-regulating system, which in turn responds. The self-regulating component allows the artifact to respond adaptively, giving participants a sense of sentience and conversation.</p>
+          <ul class="proposal-list">
+            <li><span>Input</span> — Ultrasonic sensor detects proximity of participants and provides a continuous stream of distance data.</li>
+            <li><span>Output</span> — Servo motor rotates, curling the tentacles inwards around the participant, a direct response to their presence.</li>
+            <li><span>Sound</span> — Rotation data sent to MaxMSP to generate real-time sound feedback.</li>
+          </ul>
+        </div>
+        <div class="proposal-block">
+          <h3>Sensors</h3>
+          <p>The prototype relies on an ultrasonic distance sensor (HC-SR04) to detect participants' proximity, enabling the artifact to respond dynamically to physical presence. The sensor is connected to a servo motor that slowly rotates 180 degrees, controlling wires passing through the artifact's tentacles to create an inward and outward curling motion. The rotation data is sent to MaxMSP via OSC to generate a soundscape — not only visual but tactile and auditory as well. Ideally, photosensors would be added to each leg, allowing direct interaction with the reach of individual audience members.</p>
+        </div>
+        <div class="proposal-block">
+          <h3>Materials</h3>
+          <p>There will be a high dependence on the tactile aspects of the project. Materials include TPU, soft bioplastic, fabric, and silicone. For light, we are using LEDs with fibre optics and cotton to disperse it across the body of the object. We are also exploring including water in pipes throughout the project.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="proposal-section">
+      <h2 class="proposal-heading stalinist-one-regular">Similar Projects</h2>
+      <div class="proposal-body three-col">
+        <div class="proposal-block">
+          <h3>The Coral Morph</h3>
+          <p class="proposal-credit">Xinyi Huang &amp; Daniela M. Romano</p>
+          <p>A moving textile installation that encourages emotional regulation and sensory engagement via soft robotic material movements. Touch sensors and heart-rate tracking dynamically control inflatables, while the artifact's body and tentacle-like tubes respond by changing shape and colour — seeking to elicit serenity.</p>
+        </div>
+        <div class="proposal-block">
+          <h3>In Love With the World</h3>
+          <p class="proposal-credit">Anicka Yi</p>
+          <p>A large-scale installation of bulbous robotic 'aerobes' resembling jellyfish that float autonomously in space. Electronic tracking enables response to people and the environment, while changing scentscapes engage the sense of smell. The work questions how machines could inhabit the world.</p>
+        </div>
+        <div class="proposal-block">
+          <h3>Spirobs</h3>
+          <p class="proposal-credit">Zhanchi Wang, Nikolas Ferris &amp; Xi Wei</p>
+          <p>Soft robots inspired by natural appendages like octopus arms and elephant trunks, following a logarithmic spiral shape. 3D printed with flexible material and controlled by cables, they curl and uncurl to reach, wrap around, and grasp objects of different shapes — simple, low-cost, and scalable.</p>
+        </div>
+      </div>
+      <div class="proposal-block" style="margin-top: 30px;">
+        <h3>Comparison</h3>
+        <p>Our starting point was projects like SpiRobs, wherein ideas of less human-like robots can lead to breakthroughs in technology. However, what we want to address is a tendency to stray from the aesthetics that inspire these objects — in this case, materials and aesthetics associated with the sea. Similarly, installations like Coral Morph and In Love With the World explore emotional engagement through responsive environments and organic forms. Unlike these projects, our installation specifically aims to evoke empathy through the material qualities of marine life. Through this combination of cybernetic interaction, soft robotics, and ocean-inspired aesthetics, the project explores how technology can be perceived not as a tool, but as a living presence capable of forming a gentle and curious relationship with participants.</p>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
