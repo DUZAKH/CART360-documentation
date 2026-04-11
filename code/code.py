@@ -9,8 +9,55 @@ import board
 import busio
 import digitalio
 import time
+import synthio
+import audiopwmio
+import audiomixer
+import array
+import math
 
-# ── MPR121 ───────────────────────────────────────────────────────────────────
+# ── Synthio audio via PAM8302A ────────────────────────────────────────────────
+audio = audiopwmio.PWMAudioOut(board.GP18)
+mixer = audiomixer.Mixer(channel_count=1, sample_rate=44100, buffer_size=4096)
+synth = synthio.Synthesizer(channel_count=1, sample_rate=44100)
+audio.play(mixer)
+mixer.voice[0].play(synth)
+mixer.voice[0].level = 0.5
+
+envelope = synthio.Envelope(
+    attack_time=0.4,
+    sustain_level=0.6,
+    release_time=1.2,
+)
+
+# Sine wave — smoothest, most ethereal tone
+wave_sine = array.array('h',
+    [int(32767 * math.sin(2 * math.pi * i / 512)) for i in range(512)]
+)
+
+current_note = None
+
+def distance_to_midi(dist_cm):
+    """Map 5–100 cm to a pentatonic scale (always harmonious)."""
+    pentatonic = [45, 48, 50, 52, 55, 57, 60, 62, 64, 67]  # low A to G, two octaves
+    dist_cm = max(5, min(dist_cm, 100))
+    ratio = (dist_cm - 5) / (100 - 5)
+    idx = int((1 - ratio) * (len(pentatonic) - 1))  # close = higher note
+    return pentatonic[idx]
+
+def set_tone(midi_note):
+    global current_note
+    if current_note is not None:
+        synth.release(current_note)
+    if midi_note is None:
+        current_note = None
+        return
+    current_note = synthio.Note(
+        frequency=synthio.midi_to_hz(midi_note),
+        waveform=wave_sine,
+        envelope=envelope,
+    )
+    synth.press(current_note)
+    
 MPR121_ADDR = 0x5A
 
 def mpr121_init(i2c):
@@ -152,16 +199,20 @@ print("Running — touch → motor speed | distance → LED blink rate")
 while True:
     now = time.monotonic()
 
-    # ── LED: toggle based on distance-derived delay ───────────────────────────
     if now - led_last_toggle >= led_delay:
         led_state = not led_state
         led1.value = led_state
         led2.value = not led_state
 
         dist = get_distance()
-        print("Distance: {:.2f} cm".format(dist))
         led_delay = distance_to_delay(dist)
         led_last_toggle = now
+
+        # ── Audio ─────────────────────────────────────────────────────────
+        if dist < 999:
+            set_tone(distance_to_midi(dist))
+        else:
+            set_tone(None)
 
     # ── Motors: touch sensor controls speed ───────────────────────────────────
     status = mpr121_touched(i2c)
