@@ -98,7 +98,127 @@ html, body {
   gap: 20px;
 }
 
+/* Proposal sections */
+.proposal {
+  max-width: 1200px;
+  margin: 0 auto 60px auto;
+}
+
+.proposal-section {
+  margin-bottom: 60px;
+}
+
+.proposal-heading {
+  color: white;
+  font-size: 22px;
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.proposal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+}
+
+.proposal-body.three-col {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.proposal-block h3 {
+  color: white;
+  font-family: monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.proposal-block p {
+  color: #aaa;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+.proposal-credit {
+  color: #555 !important;
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.proposal-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proposal-list li {
+  color: #aaa;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  padding-left: 12px;
+  border-left: 2px solid #333;
+}
+
+.proposal-list li span {
+  color: white;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.proposal-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin-top: 16px;
+}
+
+.journey-map {
+  width: 50%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin-top: 16px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Hide slides by default */
+.proto-section {
+  margin-bottom: 80px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.proto-heading {
+  color: white;
+  font-size: 22px;
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.dots-container {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
 .mySlides {
   display: none;
 }
@@ -193,3 +313,4 @@ html, body {
 /* Fade animation */
 .fade { animation-name: fade; animation-duration: 1.5s; }
 @keyframes fade { from {opacity: 0.4;} to {opacity:1;} }
+
