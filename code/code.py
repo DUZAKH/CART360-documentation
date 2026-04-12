@@ -1,9 +1,26 @@
-# Stepper motors with MPR121 touch sensor + HC-SR04 controlling LEDs
-# MPR121 pins 0-2 → motor 1 fast
-# MPR121 pins 3-5 → motor 2 fast
-# MPR121 pins 6-8 → motor 3 fast
-# nothing touched → all motors slow
-# HC-SR04 distance → LED alternating speed (near=fast, far=slow)
+# Spirob tentacle controller — 4 tentacles, 3 motors
+# Motor 1 (GP0-3):  inward/outward curl for all 4 tentacles
+# Motor 2 (GP4-7):  right curl for tentacles 1 & 2
+# Motor 3 (GP8-11): right curl for tentacles 3 & 4
+#
+# Round-robin sequence (no touch):
+#   PHASE 0 — Motor 1 forward  (all tentacles curl inward)
+#   PHASE 1 — Motor 1 backward (all tentacles curl outward/left)
+#   PHASE 2 — Motor 2 forward  (tentacles 1&2 curl right)
+#   PHASE 3 — Motor 2 backward + Motor 3 forward simultaneously
+#             (tentacles 3&4 curl right)
+#   PHASE 4 — All motors home → repeat from phase 0
+#
+# Touch behaviour:
+#   Touch on MPR121 pins 3-5 → interrupts sequence, homes all motors,
+#     then motor 2 curls tentacles 1&2 outward with a tighter (longer) swing
+#   Touch on MPR121 pins 6-8 → same but motor 3 for tentacles 3&4
+#   Motors 2 & 3 can run simultaneously if both leg groups are touched
+#   Release early → that motor homes; sequence restarts only when ALL
+#     touch interactions are fully homed
+#   Motor 1 is NOT triggered by touch
+#
+# HC-SR04 distance → LED blink speed + audio tone
 
 import board
 import busio
@@ -29,7 +46,6 @@ envelope = synthio.Envelope(
     release_time=1.2,
 )
 
-# Sine wave — smoothest, most ethereal tone
 wave_sine = array.array('h',
     [int(32767 * math.sin(2 * math.pi * i / 512)) for i in range(512)]
 )
@@ -37,11 +53,10 @@ wave_sine = array.array('h',
 current_note = None
 
 def distance_to_midi(dist_cm):
-    """Map 5–100 cm to a pentatonic scale (always harmonious)."""
-    pentatonic = [45, 48, 50, 52, 55, 57, 60, 62, 64, 67]  # low A to G, two octaves
+    pentatonic = [45, 48, 50, 52, 55, 57, 60, 62, 64, 67]
     dist_cm = max(5, min(dist_cm, 100))
     ratio = (dist_cm - 5) / (100 - 5)
-    idx = int((1 - ratio) * (len(pentatonic) - 1))  # close = higher note
+    idx = int((1 - ratio) * (len(pentatonic) - 1))
     return pentatonic[idx]
 
 def set_tone(midi_note):
@@ -57,25 +72,26 @@ def set_tone(midi_note):
         envelope=envelope,
     )
     synth.press(current_note)
-    
+
+# ── MPR121 ────────────────────────────────────────────────────────────────────
 MPR121_ADDR = 0x5A
 
 def mpr121_init(i2c):
     while not i2c.try_lock():
         pass
-    i2c.writeto(MPR121_ADDR, bytes([0x80, 0x63]))  # soft reset
+    i2c.writeto(MPR121_ADDR, bytes([0x80, 0x63]))
     i2c.unlock()
     time.sleep(0.001)
 
     while not i2c.try_lock():
         pass
-    i2c.writeto(MPR121_ADDR, bytes([0x5E, 0x00]))  # stop mode
-    for ch in range(9):
-        i2c.writeto(MPR121_ADDR, bytes([0x41 + ch * 2, 12]))  # touch threshold
-        i2c.writeto(MPR121_ADDR, bytes([0x42 + ch * 2, 6]))   # release threshold
-    i2c.writeto(MPR121_ADDR, bytes([0x5C, 0x10]))  # analog frontend config
-    i2c.writeto(MPR121_ADDR, bytes([0x5D, 0x24]))  # filter config
-    i2c.writeto(MPR121_ADDR, bytes([0x5E, 0x0C]))  # activate, out of stop mode
+    i2c.writeto(MPR121_ADDR, bytes([0x5E, 0x00]))
+    for ch in range(9):                          # 9 channels for 3 motors
+        i2c.writeto(MPR121_ADDR, bytes([0x41 + ch * 2, 12]))
+        i2c.writeto(MPR121_ADDR, bytes([0x42 + ch * 2, 6]))
+    i2c.writeto(MPR121_ADDR, bytes([0x5C, 0x10]))
+    i2c.writeto(MPR121_ADDR, bytes([0x5D, 0x24]))
+    i2c.writeto(MPR121_ADDR, bytes([0x5E, 0x0C]))
     i2c.unlock()
 
 def mpr121_touched(i2c):
@@ -101,7 +117,7 @@ def get_distance():
     time.sleep(0.000010)
     trig.value = False
 
-    timeout = time.monotonic_ns() + 30_000_000  # 30 ms timeout
+    timeout = time.monotonic_ns() + 30_000_000
     while not echo.value:
         if time.monotonic_ns() > timeout:
             return 999
@@ -117,16 +133,15 @@ def get_distance():
     return (duration_s * 34300) / 2
 
 def distance_to_delay(dist_cm):
-    """Map 5–100 cm → 0.05–0.5 s LED alternating delay."""
     dist_cm = max(5, min(dist_cm, 100))
     ratio = (dist_cm - 5) / (100 - 5)
     return 0.05 + ratio * (0.5 - 0.05)
 
-# ── LEDs ──────────────────────────────────────────────────────────────────────
-led1 = digitalio.DigitalInOut(board.GP15)
+# ── LEDs (moved to GP26, GP27) ────────────────────────────────────────────────
+led1 = digitalio.DigitalInOut(board.GP26)
 led1.direction = digitalio.Direction.OUTPUT
 
-led2 = digitalio.DigitalInOut(board.GP14)
+led2 = digitalio.DigitalInOut(board.GP27)
 led2.direction = digitalio.Direction.OUTPUT
 
 # ── Stepper setup ─────────────────────────────────────────────────────────────
@@ -137,9 +152,9 @@ MOTOR_PIN_NAMES = [
 ]
 
 MOTOR_MASKS = [
-    0x007,   # electrodes 0-2 → motor 1
-    0x038,   # electrodes 3-5 → motor 2
-    0x1C0,   # electrodes 6-8 → motor 3
+    0x007,   # MPR121 pins 0-2  → motor 1
+    0x038,   # MPR121 pins 3-5  → motor 2
+    0x1C0,   # MPR121 pins 6-8  → motor 3
 ]
 
 arrSeq = [
@@ -166,9 +181,68 @@ seq_pointers = [[0, 1, 2, 3, 4, 5, 6, 7] for _ in MOTOR_PIN_NAMES]
 directions   = [1] * len(MOTOR_PIN_NAMES)
 step_counts  = [0] * len(MOTOR_PIN_NAMES)
 
-SLOW_DELAY      = 0.003
-FAST_DELAY      = 0.001
-STEPS_PER_SWING = 4096 * 3
+SLOW_DELAY         = 0.003
+FAST_DELAY         = 0.001
+STEPS_PER_SWING    = 4096 * 3
+STEPS_TOUCH_CURL   = int(STEPS_PER_SWING * 1.5)  # tighter curl: 1.5× normal swing
+
+# ── Sequence phase state ──────────────────────────────────────────────────────
+# phase_config[phase] = list of (motor_idx, direction) pairs active in that phase
+phase_config = [
+    [(0,  1)],          # phase 0: motor 1 forward  (all inward)
+    [(0, -1)],          # phase 1: motor 1 backward (all outward/left)
+    [(1,  1)],          # phase 2: motor 2 forward  (tentacles 1&2 right)
+    [(1, -1), (2, 1)],  # phase 3: motor 2 back + motor 3 forward (tentacles 3&4 right)
+]
+
+current_phase = 0
+phase_done    = [False] * len(MOTOR_PIN_NAMES)
+
+# ── Homing state (shared by both sequence homing and touch homing) ────────────
+homing      = False
+home_steps  = [0] * len(MOTOR_PIN_NAMES)
+home_dirs   = [0] * len(MOTOR_PIN_NAMES)
+home_reason = "sequence"  # "sequence" or "touch"
+
+def start_phase(phase):
+    global current_phase, phase_done
+    current_phase = phase
+    phase_done    = [False] * len(MOTOR_PIN_NAMES)
+    for motor_idx, direction in phase_config[phase]:
+        directions[motor_idx]  = direction
+        step_counts[motor_idx] = 0
+    print(f"→ Phase {phase}")
+
+def start_homing(reason="sequence"):
+    global homing, home_steps, home_dirs, home_reason
+    homing      = True
+    home_reason = reason
+    for i in range(len(MOTOR_PIN_NAMES)):
+        home_steps[i] = step_counts[i]                    # signed: retrace exact path
+        home_dirs[i]  = -directions[i] if step_counts[i] != 0 else 0
+        step_counts[i] = 0
+    print(f"→ Homing ({reason})")
+
+start_phase(0)
+
+# ── Touch interrupt state ─────────────────────────────────────────────────────
+# Only motors 2 and 3 (indices 1 and 2) respond to touch.
+# Motor 1 (index 0) is never touch-activated.
+#
+# Per-motor touch states:
+#   TOUCH_IDLE     — not in a touch interaction
+#   TOUCH_CURLING  — finger held, motor curling outward (tight swing)
+#   TOUCH_HOMING   — finger released, motor returning to origin
+
+TOUCH_IDLE    = 0
+TOUCH_CURLING = 1
+TOUCH_HOMING  = 2
+
+touch_state = [TOUCH_IDLE] * len(MOTOR_PIN_NAMES)
+touch_steps = [0]          * len(MOTOR_PIN_NAMES)  # steps taken during curl
+
+# Global flag: sequence is interrupted by at least one active touch
+touch_interrupted = False
 
 # ── I2C init ──────────────────────────────────────────────────────────────────
 i2c = busio.I2C(scl=board.GP21, sda=board.GP20, frequency=400_000)
@@ -189,16 +263,17 @@ def stepper_off(motor_idx):
         pin.value = False
 
 # ── LED & distance state ──────────────────────────────────────────────────────
-led_state       = False          # False = led1 on, led2 off
+led_state       = False
 led_last_toggle = time.monotonic()
-led_delay       = 0.25           # initial delay, updated by distance
+led_delay       = 0.25
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
-print("Running — touch → motor speed | distance → LED blink rate")
+print("Running — touch pads 3-5 → motor 2 tight curl | pads 6-8 → motor 3 | default: round-robin")
 
 while True:
     now = time.monotonic()
 
+    # ── LED + audio ───────────────────────────────────────────────────────────
     if now - led_last_toggle >= led_delay:
         led_state = not led_state
         led1.value = led_state
@@ -207,20 +282,125 @@ while True:
         dist = get_distance()
         led_delay = distance_to_delay(dist)
         led_last_toggle = now
+        print(f"dist={dist:.1f}cm  led_delay={led_delay:.3f}s")
 
-        # ── Audio ─────────────────────────────────────────────────────────
         if dist < 999:
             set_tone(distance_to_midi(dist))
         else:
             set_tone(None)
 
-    # ── Motors: touch sensor controls speed ───────────────────────────────────
+    # ── Read touch sensor ─────────────────────────────────────────────────────
     status = mpr121_touched(i2c)
 
-    for i in range(len(MOTOR_PIN_NAMES)):
-        delay = FAST_DELAY if (status & MOTOR_MASKS[i]) else SLOW_DELAY
-        stepper_step(i, directions[i], delay)
-        step_counts[i] += 1
-        if step_counts[i] >= STEPS_PER_SWING:
-            step_counts[i] = 0
-            directions[i] = -directions[i]
+    # Only motors 1 and 2 (indices 1, 2) respond to touch; motor 0 never does
+    # MOTOR_MASKS[1] covers pads 3-5 (tentacles 1&2), MOTOR_MASKS[2] covers pads 6-8 (tentacles 3&4)
+    newly_interrupted = False
+    for i in [1, 2]:
+        touched = bool(status & MOTOR_MASKS[i])
+
+        if touched:
+            if touch_state[i] == TOUCH_IDLE:
+                # First touch — if sequence is running, interrupt it
+                if not touch_interrupted:
+                    # Home all motors to cleanly exit the sequence
+                    start_homing(reason="touch")
+                touch_state[i]    = TOUCH_CURLING
+                touch_steps[i]    = 0
+                directions[i]     = 1          # outward curl direction
+                newly_interrupted = True
+                print(f"  Touch motor {i+1}: starting tight curl")
+
+            elif touch_state[i] == TOUCH_HOMING:
+                # Re-touched while returning — go forward again from current position
+                touch_state[i] = TOUCH_CURLING
+                directions[i]  = 1
+                print(f"  Touch motor {i+1}: re-touched, curling again")
+
+        else:
+            if touch_state[i] == TOUCH_CURLING:
+                # Finger lifted — return to origin
+                touch_state[i] = TOUCH_HOMING
+                directions[i]  = -1
+                print(f"  Touch motor {i+1}: released, homing ({touch_steps[i]} steps)")
+
+    if newly_interrupted:
+        touch_interrupted = True
+
+    # ── Motor movement ────────────────────────────────────────────────────────
+    if touch_interrupted:
+        # ── Touch interrupt mode ──────────────────────────────────────────────
+        # Phase 1: home all motors from wherever the sequence left them
+        if homing:
+            all_home = True
+            for i in range(len(MOTOR_PIN_NAMES)):
+                if home_steps[i] != 0:
+                    stepper_step(i, home_dirs[i], FAST_DELAY)
+                    home_steps[i] -= 1
+                    if home_steps[i] != 0:
+                        all_home = False
+            if all_home:
+                homing = False
+                print("  Sequence homed — touch curls now active")
+
+        # Phase 2: run active touch curls (motors 1 and/or 2)
+        if not homing:
+            any_active = False
+            for i in [1, 2]:
+                if touch_state[i] == TOUCH_CURLING:
+                    any_active = True
+                    stepper_step(i, directions[i], FAST_DELAY)
+                    touch_steps[i] += 1
+                    step_counts[i]  = touch_steps[i]  # keep step_counts in sync for homing
+
+                    if touch_steps[i] >= STEPS_TOUCH_CURL:
+                        # Reached full tight curl — start returning even if still held
+                        touch_state[i] = TOUCH_HOMING
+                        directions[i]  = -1
+                        print(f"  Touch motor {i+1}: full curl reached, returning")
+
+                elif touch_state[i] == TOUCH_HOMING:
+                    any_active = True
+                    stepper_step(i, directions[i], FAST_DELAY)
+                    touch_steps[i] -= 1
+                    step_counts[i]  = touch_steps[i]
+
+                    if touch_steps[i] <= 0:
+                        touch_steps[i] = 0
+                        step_counts[i] = 0
+                        touch_state[i] = TOUCH_IDLE
+                        print(f"  Touch motor {i+1}: homed")
+
+            # All touch interactions complete — restart round-robin
+            if not any_active and touch_state[1] == TOUCH_IDLE and touch_state[2] == TOUCH_IDLE:
+                touch_interrupted = False
+                start_phase(0)
+                print("  All touches done → restarting sequence")
+
+    else:
+        # ── Normal round-robin sequence ───────────────────────────────────────
+        if homing:
+            all_home = True
+            for i in range(len(MOTOR_PIN_NAMES)):
+                if home_steps[i] != 0:
+                    stepper_step(i, home_dirs[i], SLOW_DELAY)
+                    home_steps[i] -= 1
+                    if home_steps[i] != 0:
+                        all_home = False
+            if all_home:
+                homing = False
+                start_phase(0)
+
+        else:
+            active_motors = [m for m, d in phase_config[current_phase]]
+            for i in active_motors:
+                stepper_step(i, directions[i], SLOW_DELAY)
+                step_counts[i] += 1
+                if step_counts[i] >= STEPS_PER_SWING:
+                    phase_done[i] = True
+
+            if all(phase_done[i] for i in active_motors):
+                next_phase = current_phase + 1
+                if next_phase >= len(phase_config):
+                    start_homing(reason="sequence")
+                else:
+                    start_phase(next_phase)
