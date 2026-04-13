@@ -1,24 +1,25 @@
-# Spirob tentacle controller — 4 tentacles, 3 motors
-# Motor 1 (GP0-3):  inward/outward curl for all 4 tentacles
-# Motor 2 (GP4-7):  right curl for tentacles 1 & 2
-# Motor 3 (GP8-11): right curl for tentacles 3 & 4
+# Spirob tentacle controller — 4 tentacles, 4 motors
+# Motor 1 (GP0-3):   inward curl for all 4 tentacles
+# Motor 2 (GP4-7):   right curl for tentacles 1 & 2
+# Motor 3 (GP8-11):  right curl for tentacles 3 & 4
+# Motor 4 (GP12-15): outward curl for all 4 tentacles
 #
 # Round-robin sequence (no touch):
 #   PHASE 0 — Motor 1 forward  (all tentacles curl inward)
-#   PHASE 1 — Motor 1 backward (all tentacles curl outward/left)
+#   PHASE 1 — Motor 4 forward  (all tentacles curl outward)
 #   PHASE 2 — Motor 2 forward  (tentacles 1&2 curl right)
 #   PHASE 3 — Motor 2 backward + Motor 3 forward simultaneously
 #             (tentacles 3&4 curl right)
 #   PHASE 4 — All motors home → repeat from phase 0
 #
 # Touch behaviour:
-#   Touch on MPR121 pins 3-5 → interrupts sequence, homes all motors,
+#   Touch on MPR121 electrodes 2 or 3 → interrupts sequence, homes all motors,
 #     then motor 2 curls tentacles 1&2 outward with a tighter (longer) swing
-#   Touch on MPR121 pins 6-8 → same but motor 3 for tentacles 3&4
+#   Touch on MPR121 electrodes 4 or 5 → same but motor 3 for tentacles 3&4
 #   Motors 2 & 3 can run simultaneously if both leg groups are touched
 #   Release early → that motor homes; sequence restarts only when ALL
 #     touch interactions are fully homed
-#   Motor 1 is NOT triggered by touch
+#   Motors 1 and 4 are NOT triggered by touch
 #
 # HC-SR04 distance → LED blink speed + audio tone
 
@@ -86,7 +87,7 @@ def mpr121_init(i2c):
     while not i2c.try_lock():
         pass
     i2c.writeto(MPR121_ADDR, bytes([0x5E, 0x00]))
-    for ch in range(9):                          # 9 channels for 3 motors
+    for ch in range(6):                          # electrodes 0-5 (only 2-5 used for touch)
         i2c.writeto(MPR121_ADDR, bytes([0x41 + ch * 2, 12]))
         i2c.writeto(MPR121_ADDR, bytes([0x42 + ch * 2, 6]))
     i2c.writeto(MPR121_ADDR, bytes([0x5C, 0x10]))
@@ -146,15 +147,17 @@ led2.direction = digitalio.Direction.OUTPUT
 
 # ── Stepper setup ─────────────────────────────────────────────────────────────
 MOTOR_PIN_NAMES = [
-    [board.GP0,  board.GP1,  board.GP2,  board.GP3],
-    [board.GP4,  board.GP5,  board.GP6,  board.GP7],
-    [board.GP8,  board.GP9,  board.GP10, board.GP11],
+    [board.GP0,  board.GP1,  board.GP2,  board.GP3],   # motor 1: inward
+    [board.GP4,  board.GP5,  board.GP6,  board.GP7],   # motor 2: right curl tentacles 1&2
+    [board.GP8,  board.GP9,  board.GP10, board.GP11],  # motor 3: right curl tentacles 3&4
+    [board.GP12, board.GP13, board.GP14, board.GP15],  # motor 4: outward
 ]
 
 MOTOR_MASKS = [
-    0x007,   # MPR121 pins 0-2  → motor 1
-    0x038,   # MPR121 pins 3-5  → motor 2
-    0x1C0,   # MPR121 pins 6-8  → motor 3
+    0x000,   # motor 1 — no touch
+    0x00C,   # electrodes 2 & 3 (bits 2,3) → motor 2 (tentacles 1&2)
+    0x030,   # electrodes 4 & 5 (bits 4,5) → motor 3 (tentacles 3&4)
+    0x000,   # motor 4 — no touch
 ]
 
 arrSeq = [
@@ -190,7 +193,7 @@ STEPS_TOUCH_CURL   = int(STEPS_PER_SWING * 1.5)  # tighter curl: 1.5× normal sw
 # phase_config[phase] = list of (motor_idx, direction) pairs active in that phase
 phase_config = [
     [(0,  1)],          # phase 0: motor 1 forward  (all inward)
-    [(0, -1)],          # phase 1: motor 1 backward (all outward/left)
+    [(3,  1)],          # phase 1: motor 4 forward  (all outward)
     [(1,  1)],          # phase 2: motor 2 forward  (tentacles 1&2 right)
     [(1, -1), (2, 1)],  # phase 3: motor 2 back + motor 3 forward (tentacles 3&4 right)
 ]
@@ -227,7 +230,7 @@ start_phase(0)
 
 # ── Touch interrupt state ─────────────────────────────────────────────────────
 # Only motors 2 and 3 (indices 1 and 2) respond to touch.
-# Motor 1 (index 0) is never touch-activated.
+# Motors 1 and 4 (indices 0 and 3) are never touch-activated.
 #
 # Per-motor touch states:
 #   TOUCH_IDLE     — not in a touch interaction
@@ -268,7 +271,7 @@ led_last_toggle = time.monotonic()
 led_delay       = 0.25
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
-print("Running — touch pads 3-5 → motor 2 tight curl | pads 6-8 → motor 3 | default: round-robin")
+print("Running — touch electrodes 2-3 → motor 2 tight curl | electrodes 4-5 → motor 3 | default: round-robin")
 
 while True:
     now = time.monotonic()
@@ -292,8 +295,9 @@ while True:
     # ── Read touch sensor ─────────────────────────────────────────────────────
     status = mpr121_touched(i2c)
 
-    # Only motors 1 and 2 (indices 1, 2) respond to touch; motor 0 never does
-    # MOTOR_MASKS[1] covers pads 3-5 (tentacles 1&2), MOTOR_MASKS[2] covers pads 6-8 (tentacles 3&4)
+    # Only motors 1 and 2 (indices 1, 2) respond to touch; motors 0 and 3 never do.
+    # MOTOR_MASKS[1] covers electrodes 2-3 (bits 2,3) → motor 2 (tentacles 1&2)
+    # MOTOR_MASKS[2] covers electrodes 4-5 (bits 4,5) → motor 3 (tentacles 3&4)
     newly_interrupted = False
     for i in [1, 2]:
         touched = bool(status & MOTOR_MASKS[i])
