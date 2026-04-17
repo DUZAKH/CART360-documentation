@@ -15,13 +15,9 @@ Elio Bidinost
 
 [1] Github & Website
 
-
-Github repository: https://github.com/victori444/CART360-Tangible-Media-Physical-Computing
-
-
 Website: 
 Website repository: https://github.com/DUZAKH/CART360-documentation
-Website link: https://duzakh.github.io/CART360-documentation/main.html
+Website link: https://duzakh.github.io/CART360-documentation/index.html
 
 
 [2] Project Description
